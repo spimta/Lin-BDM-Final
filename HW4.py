@@ -28,6 +28,11 @@ def expandVisits(date_range_start, visits_by_day):
 
     return mydict
 
+udfExpand = F.udf(expandVisits, MapType(DateType(), IntegerType()))
+getLow = lambda median, stddev: 0.0 if median - stddev < 0 else median - stddev
+udfLow = F.udf(getLow, DoubleType())
+udfChangeYear = F.udf(lambda x: x.replace(year=2020), DateType())
+
 
 def main(sc):
     spark = SparkSession(sc)
@@ -52,7 +57,6 @@ def main(sc):
     df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16', 'visits_by_day')
     df_main = df_core_place.join(df_weekly.alias('weekly'), df_core_place.placekey == df_weekly.placekey, 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
 
-    udfExpand = F.udf(expandVisits, MapType(DateType(), IntegerType()))
 
     df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
     df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
@@ -60,15 +64,13 @@ def main(sc):
     df_stddev = df_main.groupBy('naics_code', 'date').agg({'visits': 'stddev'}).withColumnRenamed('stddev(visits)', 'stddev')
     df_main = df_median.alias('a').join(df_stddev, (df_median.naics_code == df_stddev.naics_code) & (df_median.date == df_stddev.date), 'outer').select('a.naics_code', 'a.date', 'median', 'stddev')
 
-    getLow = lambda median, stddev: 0.0 if median - stddev < 0 else median - stddev
-    udfLow = F.udf(getLow, DoubleType())
 
     df_main = df_main.withColumn('low', udfLow('median', 'stddev'))
     df_main = df_main.withColumn('high', df_main.median + df_main.stddev)
     df_main = df_main.drop(df_main.stddev)
     df_main = df_main.withColumn('year', F.year(df_main.date))
 
-    udfChangeYear = F.udf(lambda x: x.replace(year=2020), DateType())
+    
     df_main = df_main.withColumn("date", udfChangeYear('date'))
 
     for catagory_name, naics_codes in catagories.items():
