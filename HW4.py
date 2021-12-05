@@ -58,7 +58,7 @@ def main(sc):
     
 
     for catagory_name, naics_codes in catagories.items():
-        df_weekly = df_weekly.filter(F.col('naics_code').isin(naics_codes))
+        df_core_place = df_core_place.filter(F.col('naics_code').isin(naics_codes))
         df_main = df_core_place.join(df_weekly.alias('weekly'), df_core_place.placekey == df_weekly.placekey, 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
         df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
         df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
