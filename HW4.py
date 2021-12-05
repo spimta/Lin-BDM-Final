@@ -55,28 +55,27 @@ def main(sc):
     # read weekly patterns
     df_weekly = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=False, escape='"').select("_c0", "_c12", "_c16")
     df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16', 'visits_by_day')
-    df_main = df_core_place.join(df_weekly.alias('weekly'), df_core_place.placekey == df_weekly.placekey, 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
-
     
 
-    df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
-    df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
-    df_median = df_main.groupBy('naics_code', 'date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'))
-    df_stddev = df_main.groupBy('naics_code', 'date').agg({'visits': 'stddev'}).withColumnRenamed('stddev(visits)', 'stddev')
-    df_main = df_median.alias('a').join(df_stddev, (df_median.naics_code == df_stddev.naics_code) & (df_median.date == df_stddev.date), 'outer').select('a.naics_code', 'a.date', 'median', 'stddev')
-
-    df_main = df_main.withColumn('low', udfLow('median', 'stddev')).withColumn('high', df_main.median + df_main.stddev).withColumn('year', F.year(df_main.date)).drop(df_main.stddev)
-
-    df_main = df_main.withColumn("date", udfChangeYear('date'))
-
     for catagory_name, naics_codes in catagories.items():
+        df_weekly = df_weekly.filter(F.col('naics_code').isin(naics_codes))
+        df_main = df_core_place.join(df_weekly.alias('weekly'), df_core_place.placekey == df_weekly.placekey, 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
+        df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
+        df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
+        df_median = df_main.groupBy('naics_code', 'date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'))
+        df_stddev = df_main.groupBy('naics_code', 'date').agg({'visits': 'stddev'}).withColumnRenamed('stddev(visits)', 'stddev')
+        df_main = df_median.alias('a').join(df_stddev, (df_median.naics_code == df_stddev.naics_code) & (df_median.date == df_stddev.date), 'outer').select('a.naics_code', 'a.date', 'median', 'stddev')
+
+        df_main = df_main.withColumn('low', udfLow('median', 'stddev')).withColumn('high', df_main.median + df_main.stddev).withColumn('year', F.year(df_main.date)).drop(df_main.stddev)
+
+        df_main = df_main.withColumn("date", udfChangeYear('date'))
+        
+        
+        
         catagory_name = catagory_name.replace(" ", "_").lower()
         outfile = args+ "/" + catagory_name
-        df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
-        #df_result = df_main
-        #for code in naics_codes:
-        #    df_result = df_result.filter(df_result.naics_code == code)
-        df_result.write.format("com.databricks.spark.csv").option("header", "true").save(outfile)
+        #df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
+        df_main.write.format("com.databricks.spark.csv").option("header", "true").save(outfile)
 
 
 if __name__ == "__main__":
