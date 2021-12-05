@@ -65,20 +65,17 @@ def main(sc):
     df_stddev = df_main.groupBy('naics_code', 'date').agg({'visits': 'stddev'}).withColumnRenamed('stddev(visits)', 'stddev')
     df_main = df_median.alias('a').join(df_stddev, (df_median.naics_code == df_stddev.naics_code) & (df_median.date == df_stddev.date), 'outer').select('a.naics_code', 'a.date', 'median', 'stddev')
 
-    
-
     df_main = df_main.withColumn('low', udfLow('median', 'stddev')).withColumn('high', df_main.median + df_main.stddev).withColumn('year', F.year(df_main.date)).drop(df_main.stddev)
 
-    
     df_main = df_main.withColumn("date", udfChangeYear('date'))
 
     for catagory_name, naics_codes in catagories.items():
         catagory_name = catagory_name.replace(" ", "_").lower()
         outfile = args+ "/" + catagory_name
-        #df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
-        df_result = df_main
-        for code in naics_codes:
-            df_result = df_result.filter(df_result.naics_code == code)
+        df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
+        #df_result = df_main
+        #for code in naics_codes:
+        #    df_result = df_result.filter(df_result.naics_code == code)
         df_result.write.format("com.databricks.spark.csv").option("header", "true").save(outfile)
 
 
