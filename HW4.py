@@ -82,12 +82,12 @@ def main(sc):
 
     for catagory_name, naics_codes in catagories.items():
         catagory_name = catagory_name.replace(" ", "_").lower()
-        outfile = args+ "/" + catagory_name
+        outfile = args+ "/" + catagory_name + "/"
         df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
         #df_result = df_main
         #for code in naics_codes:
         #    df_result = df_result.filter(df_result.naics_code == code)
-        df_result.write.option("header", True).csv(outfile)
+        df_result.write.format("com.databricks.spark.csv").option("header", "true").save(outfile)
 
 
 if __name__ == "__main__":
