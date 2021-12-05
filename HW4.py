@@ -48,8 +48,10 @@ def main(sc):
     df_core_place = df_core_place.select("placekey", "naics_code")
 
     # read weekly patterns
-    df_weekly = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=True, escape='"').select("placekey", "date_range_start",
+    df_schema = spark.read.csv('hdfs:///data/share/bdm/core-places-nyc.csv/part-000000', header=True, escape='"').schema
+    df_weekly = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', escape='"', schema=df_schema).select("placekey", "date_range_start",
                                                                                  "visits_by_day")
+    df_weekly = df_weekly[1:]
     df_main = df_core_place.join(df_weekly.alias('weekly'), df_core_place.placekey == df_weekly.placekey, 'inner').select(
         "weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
 
