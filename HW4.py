@@ -44,11 +44,11 @@ def main(sc):
                   "Supermarkets (except Convenience Stores)": [445110]}
 
     # read core place
-    df_core_place = spark.read.csv('/data/share/bdm/core-places-nyc.csv', header=True, escape='"')
+    df_core_place = spark.read.csv('hdfs:///data/share/bdm/core-places-nyc.csv', header=True, escape='"')
     df_core_place = df_core_place.select("placekey", "naics_code")
 
     # read weekly patterns
-    df_weekly = spark.read.csv('/data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=True, escape='"').select("placekey", "date_range_start",
+    df_weekly = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=True, escape='"').select("placekey", "date_range_start",
                                                                                  "visits_by_day")
     df_main = df_core_place.join(df_weekly.alias('weekly'), df_core_place.placekey == df_weekly.placekey, 'inner').select(
         "weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
@@ -83,10 +83,10 @@ def main(sc):
     for catagory_name, naics_codes in catagories.items():
         catagory_name = catagory_name.replace(" ", "_").lower()
         outfile = args+ "/" + catagory_name
-        df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
-        #df_result = df_main
-        #for code in naics_codes:
-        #    df_result = df_result.filter(df_result.naics_code == code)
+        #df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
+        df_result = df_main
+        for code in naics_codes:
+            df_result = df_result.filter(df_result.naics_code == code)
         df_result.write.format("com.databricks.spark.csv").option("header", "true").save(outfile)
 
 
