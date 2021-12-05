@@ -70,10 +70,10 @@ def main(sc):
                                         (df_median.naics_code == df_stddev.naics_code) & (df_median.date == df_stddev.date),
                                         'outer').select('a.naics_code', 'a.date', 'median', 'stddev')
 
-    #getLow = lambda median, stddev: 0.0 if median - stddev < 0 else median - stddev
-    #udfLow = F.udf(getLow, DoubleType())
+    getLow = lambda median, stddev: 0.0 if median - stddev < 0 else median - stddev
+    udfLow = F.udf(getLow, DoubleType())
 
-    df_main = df_main.withColumn('low', when(df_main.median-df_main.stddev <= 0, 0.0).otherwise(df_main.median-df_main.stddev))
+    df_main = df_main.withColumn('low', udfLow('median', 'stddev'))
     df_main = df_main.withColumn('high', df_main.median + df_main.stddev)
     df_main = df_main.drop(df_main.stddev)
     df_main = df_main.withColumn('year', F.year(df_main.date))
