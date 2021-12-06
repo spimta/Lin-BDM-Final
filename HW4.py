@@ -65,7 +65,7 @@ df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c
 
 for catagory_name, naics_codes in catagories.items():
     df_core_place2 = df_core_place.filter(F.col('naics_code').isin(naics_codes))
-    df_main = df_weekly.alias('weekly').join(df_core_place2, 'placekey', 'outer').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
+    df_main = df_weekly.join(df_core_place2, 'placekey', 'outer').select("placekey", "date_range_start", "visits_by_day", "naics_code")
     df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
     df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
     df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'), F.stddev('visits').alias('stddev'))
