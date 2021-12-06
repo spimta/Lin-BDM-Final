@@ -64,7 +64,7 @@ def main(sc):
         df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
         df_median = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'))
         df_stddev = df_main.groupBy('date').agg({'visits': 'stddev'}).withColumnRenamed('stddev(visits)', 'stddev')
-        df_main = df_median.alias('a').join(df_stddev, (df_median.date == df_stddev.date), 'outer').select('a.naics_code', 'a.date', 'median', 'stddev')
+        df_main = df_median.alias('a').join(df_stddev, (df_median.date == df_stddev.date), 'outer').select('a.date', 'median', 'stddev')
 
         df_main = df_main.withColumn('low', udfLow('median', 'stddev')).withColumn('high', df_main.median + df_main.stddev).withColumn('year', F.year(df_main.date)).drop(df_main.stddev)
 
