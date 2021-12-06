@@ -58,19 +58,20 @@ def main(sc):
 
     # loop for each categories
     for catagory_name, naics_codes in catagories.items():
-        df_core_place2 = df_core_place.filter(F.col('naics_code').isin(naics_codes)) # filter by the naics_codes
-        places = df_core_place2.select('placekey').rdd.flatMap(lambda x: x).collect()
-        df_main = df_weekly.filter(F.col('placekey').isin(places)).select("placekey", "date_range_start", "visits_by_day") # join(df_core_place2, 'placekey', 'inner').select("placekey", "date_range_start", "visits_by_day")
-        df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'))
-        df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
-        df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'), F.stddev('visits').alias('stddev'))
+        df_core_place2 = df_core_place.filter(F.col('naics_code').isin(naics_codes)) # filter by the naics code
+        df_main = df_weekly.join(df_core_place2, 'placekey', 'inner').select("placekey", "date_range_start", "visits_by_day") # join them together to get date and visits
+        df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits')) # extract date
+        df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31))) # filter date
+        df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'), F.stddev('visits').alias('stddev')) # get median and standard deviation for each date
 
+        # get low and high value, which is median+-stddev and should be >=0
         df_main = df_main.withColumn('low', udfLow('median', 'stddev')).withColumn('high', df_main.median + df_main.stddev).withColumn('year', F.year(df_main.date)).drop(df_main.stddev).orderBy('date')
-
+        
+        # change year for ploting purposes
         df_main = df_main.withColumn("date", udfChangeYear('date'))
         
         
-        
+        # save file
         catagory_name = catagory_name.replace(" ", "_").lower()
         outfile = args+ "/" + catagory_name
         header_data = [("date", "median", "low", "high", "year")]
