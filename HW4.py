@@ -60,12 +60,12 @@ df_core_place = df_core_place.select("placekey", "naics_code").cache()
 
 # read weekly patterns
 df_weekly = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=False, escape='"').select("_c0", "_c12", "_c16")
-df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16', 'visits_by_day').cache()
+df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16', 'visits_by_day')
 
 
 for catagory_name, naics_codes in catagories.items():
     df_core_place2 = df_core_place.filter(F.col('naics_code').isin(naics_codes))
-    df_main = df_core_place2.join(df_weekly.alias('weekly'), df_core_place2.placekey == df_weekly.placekey, 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
+    df_main = df_weekly.alias('weekly').join(df_core_place2, 'placekey', 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
     df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
     df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
     df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'), F.stddev('visits').alias('stddev'))
