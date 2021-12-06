@@ -65,7 +65,7 @@ df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c
 
 for catagory_name, naics_codes in catagories.items():
     df_core_place2 = df_core_place.filter(F.col('naics_code').isin(naics_codes))
-    df_main = df_weekly.alias('weekly').join(df_core_place2, 'placekey', 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
+    df_main = df_weekly.alias('weekly').join(df_core_place2, 'placekey', 'outer').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
     df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
     df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
     df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'), F.stddev('visits').alias('stddev'))
@@ -79,6 +79,19 @@ for catagory_name, naics_codes in catagories.items():
     catagory_name = catagory_name.replace(" ", "_").lower()
     outfile = args+ "/" + catagory_name
     #df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
-    df_main.write.format("com.databricks.spark.csv").option("header", "true").save(outfile)
+    
+    schema = StructType([ \
+        StructField("date",StringType(),True), \
+        StructField("median",StringType(),True), \
+        StructField("low",StringType(),True), \
+        StructField("high", StringType(), True), \
+        StructField("year", StringType(), True), \
+      ])
+    
+    header_data = [("date", "meidan", "low", "high", "year")]
+    df_header = spark.createDataFrame(data=header_data,schema=schema)
+    
+    df_header.union(df_main)
+    df_main.write.format("com.databricks.spark.csv").option("header", "false").save(outfile)
 
 
