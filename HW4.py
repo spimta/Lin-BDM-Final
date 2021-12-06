@@ -56,11 +56,11 @@ catagories = {"Big Box Grocers": [452210, 452311],
 
 # read core place
 df_core_place = spark.read.csv('hdfs:///data/share/bdm/core-places-nyc.csv', header=True, escape='"')
-df_core_place = df_core_place.select("placekey", "naics_code")
+df_core_place = df_core_place.select("placekey", "naics_code").cache()
 
 # read weekly patterns
 df_weekly = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=False, escape='"').select("_c0", "_c12", "_c16")
-df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16', 'visits_by_day')
+df_weekly = df_weekly.withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16', 'visits_by_day').cache()
 
 
 for catagory_name, naics_codes in catagories.items():
@@ -69,7 +69,6 @@ for catagory_name, naics_codes in catagories.items():
     df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
     df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
     df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'), F.stddev('visits').alias('stddev'))
-    #df_main = df_median.alias('a').join(df_stddev, (df_median.date == df_stddev.date), 'outer').select('a.date', 'median', 'stddev')
 
     df_main = df_main.withColumn('low', udfLow('median', 'stddev')).withColumn('high', df_main.median + df_main.stddev).withColumn('year', F.year(df_main.date)).drop(df_main.stddev)
 
