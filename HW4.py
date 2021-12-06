@@ -8,6 +8,12 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import DateType, IntegerType, MapType, StringType, DoubleType
 
 
+
+if __name__ == "__main__":
+    sc = pyspark.SparkContext()
+    main(sc)
+
+
 def expandVisits(date_range_start, visits_by_day):
     '''
     This function needs to return a Python's dict{datetime:int} where:
@@ -62,7 +68,9 @@ def main(sc):
         df_main = df_core_place2.join(df_weekly.alias('weekly'), df_core_place2.placekey == df_weekly.placekey, 'inner').select("weekly.placekey", "date_range_start", "visits_by_day", "naics_code")
         df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'), 'naics_code')
         df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
-        df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median')).agg({'visits': 'stddev'}).withColumnRenamed('stddev(visits)', 'stddev')
+        df_median = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'))
+        df_stddev = df_main.groupBy('date').agg({'visits': 'stddev'}).withColumnRenamed('stddev(visits)', 'stddev')
+        df_main = df_median.withColumn('stddev', df_stddev.stddev)
         #df_main = df_median.alias('a').join(df_stddev, (df_median.date == df_stddev.date), 'outer').select('a.date', 'median', 'stddev')
 
         df_main = df_main.withColumn('low', udfLow('median', 'stddev')).withColumn('high', df_main.median + df_main.stddev).withColumn('year', F.year(df_main.date)).drop(df_main.stddev)
@@ -77,6 +85,3 @@ def main(sc):
         df_main.write.format("com.databricks.spark.csv").option("header", "true").save(outfile)
 
 
-if __name__ == "__main__":
-    sc = pyspark.SparkContext()
-    main(sc)
