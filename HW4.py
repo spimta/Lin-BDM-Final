@@ -59,8 +59,8 @@ def main(sc):
     # loop for each categories
     for catagory_name, naics_codes in catagories.items():
         df_core_place2 = df_core_place.filter(F.col('naics_code').isin(naics_codes)) # filter by the naics_codes
-        places = df_core_place2.select('placeid').rdd.flatMap(lambda x: x).collect()
-        df_main = df_weekly.filter(F.col('placeid').isin(places)).select("placekey", "date_range_start", "visits_by_day") # join(df_core_place2, 'placekey', 'inner').select("placekey", "date_range_start", "visits_by_day")
+        places = df_core_place2.select('placekey').rdd.flatMap(lambda x: x).collect()
+        df_main = df_weekly.filter(F.col('placekey').isin(places)).select("placekey", "date_range_start", "visits_by_day") # join(df_core_place2, 'placekey', 'inner').select("placekey", "date_range_start", "visits_by_day")
         df_main = df_main.select('placekey', F.explode(udfExpand('date_range_start', 'visits_by_day')).alias('date', 'visits'))
         df_main = df_main.filter((df_main.date >= datetime.date(2019, 1, 1)) & (df_main.date <= datetime.date(2020, 12, 31)))
         df_main = df_main.groupBy('date').agg(F.expr('percentile(visits, array(0.5))')[0].alias('median'), F.stddev('visits').alias('stddev'))
