@@ -80,16 +80,9 @@ for catagory_name, naics_codes in catagories.items():
     outfile = args+ "/" + catagory_name
     #df_result = df_main.filter(F.col('naics_code').isin(naics_codes))
     
-    schema = StructType([ \
-        StructField("date",StringType(),True), \
-        StructField("median",StringType(),True), \
-        StructField("low",StringType(),True), \
-        StructField("high", StringType(), True), \
-        StructField("year", StringType(), True), \
-      ])
     
     header_data = [("date", "meidan", "low", "high", "year")]
-    df_header = spark.createDataFrame(data=header_data,schema=schema)
+    df_header = spark.createDataFrame(data=header_data)
     
     df_main = df_header.union(df_main)
     df_main.write.format("com.databricks.spark.csv").option("header", "false").save(outfile)
