@@ -48,8 +48,7 @@ def main(sc, spark):
     the file paths with the ones provided in the problem description.
     '''
     dfPlaces = spark.read.csv('/data/share/bdm/core-places-nyc.csv', header=True, escape='"')
-    dfPattern = spark.read.csv('hdfs:///data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=False, escape='"').select("_c0", "_c12", "_c16") \
-                .withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16','visits_by_day')
+    dfPattern = spark.read.csv('/data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=True, escape='"')
 
     OUTPUT_PREFIX = sys.argv[1]
 
