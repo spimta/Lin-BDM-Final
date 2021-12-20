@@ -89,7 +89,6 @@ def main(sc, spark):
         .withColumn('stats', udfComputeStats('group', 'visits')) \
         .select('group', 'year', 'date', 'stats.*') \
         .withColumn('date', F.concat(F.lit('2020-'), dfPattern.date)) \
-        .orderBy('group', 'year', 'date') \
         .cache()
 
     GROUP = {"big_box_grocers": 0,
@@ -104,6 +103,7 @@ def main(sc, spark):
 
     for filename, group_num in GROUP.items():
         df.filter(df.group == group_num) \
+            .orderBy('group', 'year', 'date') \
             .drop('group')\
             .coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
 
