@@ -103,23 +103,10 @@ def main(sc, spark):
              "specialty_food_stores": 7,
              "supermarkets_except_convenience_stores": 8}
 
-
-
     for filename, group_num in GROUP.items():
-        header_data = [("group", "year", "date", "median", "low", "high")]
-        header_schema = T.StructType([
-            T.StructField("group", T.StringType(), True),
-            T.StructField("year", T.StringType(), True),
-            T.StructField("date", T.StringType(), True),
-            T.StructField("median", T.StringType(), True),
-            T.StructField("low", T.StringType(), True),
-            T.StructField("high", T.StringType(), True)])
-        header_df = spark.createDataFrame(data=header_data, schema=header_schema)
-
-        dfFinal = header_df.union(df).cache()
-        dfFinal.filter(dfFinal.group == group_num) \
+        df.filter(df.group == group_num) \
             .drop('group')\
-            .coalesce(50).write.format("com.databricks.spark.csv").option("header", "false").save(f'{OUTPUT_PREFIX}/{filename}')
+            .coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=True)
 
 
 if __name__=='__main__':
