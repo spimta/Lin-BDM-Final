@@ -103,10 +103,18 @@ def main(sc, spark):
              "specialty_food_stores": 7,
              "supermarkets_except_convenience_stores": 8}
 
+    header_data = [("group", "year", "date", "median", "low", "high")]
+    header_schema = T.StructType([
+        T.StructField("group", T.StringType(), True),
+        T.StructField("year", T.StringType(), True),
+        T.StructField("date", T.StringType(), True),
+        T.StructField("median", T.StringType(), True),
+        T.StructField("low", T.StringType(), True),
+        T.StructField("high", T.StringType(), True)])
+    header_df = spark.createDataFrame(data=header_data, schema=header_schema)
+
 
     for filename, group_num in GROUP.items():
-        header_data = [("group", "year", "date", "median", "low", "high")]
-        header_df = spark.createDataFrame(data=header_data, schema=df.schema)
         df = header_df.union(df)
         df.filter(df.group == group_num) \
             .drop('group')\
