@@ -83,15 +83,14 @@ def main(sc, spark):
 
     udfComputeStats = F.udf(computeStats, statsType)
 
-    dfPattern = dfPattern.groupBy('group', 'year', 'date') \
+    df = dfPattern.groupBy('group', 'year', 'date') \
         .agg(F.collect_list('visits').alias('visits')) \
-        .withColumn('stats', udfComputeStats('group', 'visits'))
-
-    dfPattern = dfPattern \
+        .withColumn('stats', udfComputeStats('group', 'visits')) \
         .select('group', 'year', 'date', 'stats.*') \
         .withColumn('date', F.concat(F.lit('2020-'), dfPattern.date)) \
-        .coalesce(1) \
+        .orderBy('group', 'year', 'date') \
         .cache()
+
 
     GROUP = {"big_box_grocers": 0,
              "convenience_stores": 1,
@@ -104,7 +103,7 @@ def main(sc, spark):
              "supermarkets_except_convenience_stores": 8}
 
     for filename, group_num in GROUP.items():
-        dfPattern.filter(dfPattern.group == group_num) \
+        df.filter(df.group == group_num) \
             .drop('group') \
             .write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=True)
 
