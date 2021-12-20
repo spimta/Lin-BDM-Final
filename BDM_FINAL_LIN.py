@@ -107,12 +107,11 @@ def main(sc, spark):
 
     for filename, group_num in GROUP.items():
         header_data = [("year", "date", "median", "low", "high")]
-        df_header = spark.createDataFrame(data=header_data).cache()
-        df = df_header.union(df).cache()
+        spark.createDataFrame(data=header_data).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
         df.filter(df.group == group_num) \
             .drop('group') \
             .coalesce(50) \
-            .write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
+            .write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='append', header=False)
 
 
 if __name__=='__main__':
