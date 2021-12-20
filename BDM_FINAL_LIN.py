@@ -48,7 +48,8 @@ def main(sc, spark):
     the file paths with the ones provided in the problem description.
     '''
     dfPlaces = spark.read.csv('/data/share/bdm/core-places-nyc.csv', header=True, escape='"')
-    dfPattern = spark.read.csv('/data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=True, escape='"')
+    dfPattern = spark.read.csv('/data/share/bdm/weekly-patterns-nyc-2019-2020/*', header=False, escape='"').select("_c0", "_c12", "_c16") \
+                    .withColumnRenamed('_c0', 'placekey').withColumnRenamed('_c12', 'date_range_start').withColumnRenamed('_c16', 'visits_by_day')
 
     OUTPUT_PREFIX = sys.argv[1]
 
@@ -102,10 +103,15 @@ def main(sc, spark):
              "specialty_food_stores": 7,
              "supermarkets_except_convenience_stores": 8}
 
+    header_data = [("date", "median", "low", "high", "year")]
+    df_header = spark.createDataFrame(data=header_data)
+
     for filename, group_num in GROUP.items():
+        df_header.write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
+        
         df.filter(df.group == group_num) \
             .drop('group')\
-            .coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
+            .coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='append', header=False)
 
 
 if __name__=='__main__':
