@@ -9,4 +9,3 @@ if __name__=='__main__':
         .coalesce(1) \
         .mapPartitions(lambda x: itertools.chain([header], x)) \
         .saveAsTextFile('weekly-patterns-nyc-2019-2020-sample')
-    
