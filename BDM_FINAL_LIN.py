@@ -119,7 +119,7 @@ def main(sc, spark):
         dfFinal = header_df.union(df).cache()
         dfFinal.filter(dfFinal.group == group_num) \
             .drop('group')\
-            .coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
+            .coalesce(50).write.format("com.databricks.spark.csv").option("header", "false").save(f'{OUTPUT_PREFIX}/{filename}')
 
 
 if __name__=='__main__':
