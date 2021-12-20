@@ -109,9 +109,9 @@ def main(sc, spark):
         header_data = [("year", "date", "median", "low", "high")]
         header_df = spark.createDataFrame(data=header_data)
         df.filter(df.group == group_num) \
-            .drop('group')
+            .drop('group').cache()
 
-        df = header_df.union(df)
+        df = header_df.union(df).cache()
         df.coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
 
 
