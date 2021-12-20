@@ -103,7 +103,7 @@ def main(sc, spark):
              "supermarkets_except_convenience_stores": 8}
 
     for filename, group_num in GROUP.items():
-        dfPattern.filter(dfPattern.group == 0) \
+        dfPattern.filter(dfPattern.group == group_num) \
             .drop('group') \
             .coalesce(1) \
             .write.csv(f'{OUTPUT_PREFIX}/{filename}',
