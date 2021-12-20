@@ -72,21 +72,22 @@ def main(sc, spark):
                               T.StructField('visits', T.IntegerType())])
 
     udfExpand = F.udf(expandVisits, T.ArrayType(visitType))
-
     statsType = T.StructType([T.StructField('median', T.IntegerType()),
                               T.StructField('low', T.IntegerType()),
                               T.StructField('high', T.IntegerType())])
 
     udfComputeStats = F.udf(computeStats, statsType)
-
-    df = dfPattern.join(dfPlaces, 'placekey') \
+    dfPattern = dfPattern.join(dfPlaces, 'placekey') \
         .withColumn('expanded', F.explode(udfExpand('date_range_start', 'visits_by_day'))) \
-        .select('group', 'expanded.*') \
-        .groupBy('group', 'year', 'date') \
+        .select('group', 'expanded.*')
+
+
+
+    df = dfPattern.groupBy('group', 'year', 'date') \
         .agg(F.collect_list('visits').alias('visits')) \
         .withColumn('stats', udfComputeStats('group', 'visits')) \
         .select('group', 'year', 'date', 'stats.*') \
-        .withColumn('date', F.concat(F.lit('2020-'), F.col('date'))) \
+        .withColumn('date', F.concat(F.lit('2020-'), dfPattern.date)) \
         .orderBy('group', 'year', 'date') \
         .cache()
 
@@ -104,7 +105,6 @@ def main(sc, spark):
     for filename, group_num in GROUP.items():
         df.filter(df.group == group_num) \
             .drop('group') \
-            .coalesce(50) \
             .write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=True)
 
 
