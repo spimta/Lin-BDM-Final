@@ -105,8 +105,7 @@ def main(sc, spark):
     for filename, group_num in GROUP.items():
         dfPattern.filter(dfPattern.group == group_num) \
             .drop('group') \
-            .write.csv(f'{OUTPUT_PREFIX}/{filename}',
-                       mode='overwrite', header=True)
+            .write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=True)
 
 
 if __name__=='__main__':
