@@ -93,7 +93,6 @@ def main(sc, spark):
         .orderBy('group', 'year', 'date') \
         .cache()
 
-
     GROUP = {"big_box_grocers": 0,
              "convenience_stores": 1,
              "drinking_places": 2,
@@ -107,9 +106,9 @@ def main(sc, spark):
 
     for filename, group_num in GROUP.items():
         header_data = [("group", "year", "date", "median", "low", "high")]
-        header_df = spark.createDataFrame(data=header_data)
+        header_df = spark.createDataFrame(data=header_data, schema=df.schema)
         df = header_df.union(df)
-        df.filter(df._c0 == group_num) \
+        df.filter(df.group == group_num) \
             .drop('group')\
             .coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=False)
 
