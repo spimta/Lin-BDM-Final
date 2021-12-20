@@ -105,6 +105,7 @@ def main(sc, spark):
         df.filter(df.group == group_num) \
             .drop('group') \
             .orderBy('year', 'date') \
+            .cache() \
             .coalesce(50).write.csv(f'{OUTPUT_PREFIX}/{filename}', mode='overwrite', header=True)
 
 
