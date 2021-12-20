@@ -104,11 +104,11 @@ def main(sc, spark):
              "specialty_food_stores": 7,
              "supermarkets_except_convenience_stores": 8}
 
-    header_data = [("year", "date", "median", "low", "high")]
-    df_header = spark.createDataFrame(data=header_data)
 
     for filename, group_num in GROUP.items():
-        df = df_header.union(df)
+        header_data = [("year", "date", "median", "low", "high")]
+        df_header = spark.createDataFrame(data=header_data)
+        df = df_header.union(df).cache()
         df.filter(df.group == group_num) \
             .drop('group') \
             .coalesce(50) \
