@@ -86,7 +86,7 @@ def main(sc, spark):
         .agg(F.collect_list('visits').alias('visits')) \
         .withColumn('stats', udfComputeStats('group', 'visits')) \
         .select('group', 'year', 'date', 'stats.*') \
-        .withColumn('date', F.concat(F.lit('2020-'), dfPattern.date)) \
+        .withColumn('date', F.concat(F.lit('2020-'), F.col('date'))) \
         .orderBy('group', 'year', 'date') \
         .cache()
 
