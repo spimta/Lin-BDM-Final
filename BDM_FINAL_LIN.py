@@ -90,6 +90,7 @@ def main(sc, spark):
     dfPattern = dfPattern \
         .select('group', 'year', 'date', 'stats.*') \
         .withColumn('date', F.concat(F.lit('2020-'), dfPattern.date)) \
+        .coalesce(1) \
         .cache()
 
     GROUP = {"big_box_grocers": 0,
