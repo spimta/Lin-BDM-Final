@@ -73,17 +73,16 @@ def main(sc, spark):
 
     udfExpand = F.udf(expandVisits, T.ArrayType(visitType))
 
-    dfPattern = dfPattern.join(dfPlaces, 'placekey') \
-        .withColumn('expanded', F.explode(udfExpand('date_range_start', 'visits_by_day'))) \
-        .select('group', 'expanded.*')
-
     statsType = T.StructType([T.StructField('median', T.IntegerType()),
                               T.StructField('low', T.IntegerType()),
                               T.StructField('high', T.IntegerType())])
 
     udfComputeStats = F.udf(computeStats, statsType)
 
-    df = dfPattern.groupBy('group', 'year', 'date') \
+    df = dfPattern.join(dfPlaces, 'placekey') \
+        .withColumn('expanded', F.explode(udfExpand('date_range_start', 'visits_by_day'))) \
+        .select('group', 'expanded.*') \
+        .groupBy('group', 'year', 'date') \
         .agg(F.collect_list('visits').alias('visits')) \
         .withColumn('stats', udfComputeStats('group', 'visits')) \
         .select('group', 'year', 'date', 'stats.*') \
