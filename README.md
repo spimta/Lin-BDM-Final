@@ -105,5 +105,11 @@ The notebook file that implements the analysis procedure for sampled data, and f
 
 * BDM_Final.py: Final working code, time optimized, should be work on the server and get the result <2 min.
 
-* result folder:
-.png files contains the final result visualization. 
+* sampling.py: this python script sampling the data for testing (for notebook usage, mainly for developing the analysis procedure). 
+
+* result data folder:
+.csv files contains the final data results.
+
+* result visualization folder:
+.png files contains the final data visualization.
+
